@@ -1,19 +1,36 @@
 # coding: utf-8
 
-from proto.sofa import sofa_pb2
-from proto.sofa import sofa_pb2_grpc
+import pandas as pd
+from SOFASonix import SOFAFile
 
 
-class SampleServiceServicer(sofa_pb2_grpc.SampleServiceServicer):
+def view_info(filename):
+    try:
+        sofa = SOFAFile.load(filename)
+    except FileNotFoundError:
+        return "requested resource not found"
+    except Exception as e:
+        return f"error occurred: {e}"
 
-    def __init__(self):
-        pass
+    cols = ["Shorthand", "Type", "Value", "RO", "M", "Dims"]
 
-    def SOFADecoder(self, request_iterator, context):
-        for new_msg in request_iterator:
-            reply_msgs = []
-            print('Receive new message! [name: {}, msg: {}]'.format(new_msg.name, new_msg.msg))
-            reply_msgs.append(sofa_pb2.SOFAInfoMessage(reply_msg='{} {}'.format(new_msg.msg, new_msg.name)))
-            reply_msgs.append(sofa_pb2.SOFAInfoMessage(reply_msg='Nice to meet you!!!'))
-            for message in reply_msgs:
-                yield message
+    rows = []
+    params = sofa.flatten()
+    for i in params:
+        pi = params[i]
+        value = "{} Array".format(pi.value.shape) if \
+            (pi.isType("double") or pi.isType("string")) else pi.value
+        rows.append([".{}".format(pi.getShorthandName()),
+                     pi.type[0].upper(),
+                     value,
+                     pi.isReadOnly(),
+                     pi.isRequired(),
+                     str(pi.dimensions) if pi.dimensions else "_"])
+    pd.set_option('display.max_colwidth', 40)
+    pd.set_option('display.expand_frame_repr', False)
+
+    df = pd.DataFrame(rows, columns=cols)
+    # print(df)
+    info = f"{df}"
+
+    return info
