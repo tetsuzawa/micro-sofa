@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package sample;
+
+message SOFANameMessage {
+    string filename = 1;
+}
+
+message SOFAInfoMessage {
+    string info_msg = 1;
+}
+
+service SOFA {
+    rpc DecodeSOFA (stream SOFANameMessage) returns (stream SOFAInfoMessage) {
+    }
+}
